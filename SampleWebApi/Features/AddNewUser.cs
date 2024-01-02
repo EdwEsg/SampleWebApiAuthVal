@@ -62,7 +62,7 @@ namespace SampleWebApi.Features
             {
                 RuleFor(x => x.Fullname).NotEmpty().MaximumLength(50);
                 RuleFor(x => x.Username).NotEmpty().MaximumLength(20);
-                RuleFor(x => x.Password).NotEmpty().MinimumLength(6);
+                RuleFor(x => x.Password).NotEmpty().MaximumLength(20);
             }
         }
 

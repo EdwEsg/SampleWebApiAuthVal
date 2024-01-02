@@ -26,19 +26,15 @@ builder.Services.AddAuthentication(authOptions =>
 })
     .AddJwtBearer(jwtOptions =>
     {
-        var key = builder.Configuration.GetValue<string>("JwtConfig:Key");
+        var key = builder.Configuration.GetValue<string>("AppSettings:Token");
         var keyBytes = Encoding.ASCII.GetBytes(key);
         jwtOptions.SaveToken = true;
         jwtOptions.RequireHttpsMetadata = false;
         jwtOptions.TokenValidationParameters = new TokenValidationParameters
         {
             IssuerSigningKey = new SymmetricSecurityKey(keyBytes),
-            ValidateAudience = true,
             ValidateLifetime = true,
-            ValidateIssuer = true,
             ClockSkew = TimeSpan.Zero,
-            ValidIssuer = builder.Configuration["JwtConfig:Issuer"],
-            ValidAudience = builder.Configuration["JwtConfig:Audience"]
         };
 
     });

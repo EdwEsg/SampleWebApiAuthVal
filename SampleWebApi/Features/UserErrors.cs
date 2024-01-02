@@ -15,5 +15,8 @@ namespace SampleWebApi.Features
 
         public static Error InputsNotMet() =>
             new Error("Inputs.NotMet", "Conditions are not met please check your inputs");
+
+        public static Error IncorrectUsernameOrPassword() =>
+            new Error("Authentication.IncorrectUsernameOrPassword", "Username or password is incorrect!");
     }
 }

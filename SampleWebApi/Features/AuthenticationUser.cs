@@ -7,9 +7,42 @@ using System.ComponentModel.DataAnnotations;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Microsoft.AspNetCore.Mvc;
+using static SampleWebApi.Features.AuthenticationUser;
 
 namespace SampleWebApi.Features
 {
+    [Route("api/Authentication")]
+    [ApiController]
+    public class AuthenticationController : ControllerBase
+    {
+        private readonly IMediator _mediator;
+
+        public AuthenticationController(IMediator mediator)
+        {
+            _mediator = mediator;
+        }
+
+        [HttpPost("UserAuthentication")]
+        public async Task<IActionResult> AuthenticateUser([FromBody] AuthenticationUserCommand command)
+        {
+            try
+            {
+                var result = await _mediator.Send(command);
+                if (result.IsFailure)
+                {
+                    return BadRequest(result);
+                }
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return Conflict(ex.Message);
+            }
+        }
+    }
+
+
     public class AuthenticationUser
     {
 
@@ -25,14 +58,14 @@ namespace SampleWebApi.Features
 
             public string Token { get; set; }
 
-            public AuthenticationUserResult(User user, string token)
+            public AuthenticationUserResult(User user, string jwtToken)
             {
                 
                 Id = user.Id;
                 FullName = user.Fullname;
                 UserName = user.Username; 
                 Password = user.Password;
-                Token = token;
+                Token = jwtToken;
 
             }
         }
@@ -67,25 +100,25 @@ namespace SampleWebApi.Features
 
                 if(user == null)
                 {
-                    return Result.Failure(AutheticationError.IncorrectUsernameOrPassword());
+                    return Result.Failure(UserErrors.IncorrectUsernameOrPassword());
                 }
 
 
                 await _context.SaveChangesAsync(cancellationToken);
 
-                var token = GenerateJwtToken(user);
+                var jwtToken = CreateToken(user);
 
-                var result = user.ToGetAuthenticatedUserResult(token);
+                var result = user.ToGetAuthenticatedUserResult(jwtToken);
 
                 return Result.Success(result);
 
 
             }
 
-            public string GenerateJwtToken(User user)
+            public string CreateToken(User user)
             {
-                var key = _configuration.GetValue<string>("JwtConfig:Key");
-                var KeyBytes = Encoding.ASCII.GetBytes(key);
+                var tokenKey = _configuration.GetValue<string>("AppSettings:Token");
+                var encoding = Encoding.ASCII.GetBytes(tokenKey);
                 var tokenHandler = new JwtSecurityTokenHandler();
                 var tokenDescriptor = new SecurityTokenDescriptor
                 {
@@ -94,14 +127,14 @@ namespace SampleWebApi.Features
                         new Claim("id", user.Id.ToString()),
                         new Claim(ClaimTypes.Name , user.Fullname),
                     }),
-                    Expires = DateTime.UtcNow.AddDays(1),
+                    Expires = DateTime.Now.AddDays(1),
                     SigningCredentials = new SigningCredentials(
-                        new SymmetricSecurityKey(KeyBytes),
+                        new SymmetricSecurityKey(encoding),
                         SecurityAlgorithms.HmacSha256Signature)
                 };
 
-                var token = tokenHandler.CreateToken(tokenDescriptor);
-                return tokenHandler.WriteToken(token);
+                var jwtToken = tokenHandler.CreateToken(tokenDescriptor);
+                return tokenHandler.WriteToken(jwtToken);
             }
 
 
